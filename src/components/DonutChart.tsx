@@ -50,10 +50,10 @@ export default function DonutChart({ summary }: Props) {
       </div>
 
       <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 mt-2 px-1">
-        {outerData.map(d => {
+        {outerData.map((d, i) => {
           const pct = summary.totalExpense > 0 ? ((d.value / summary.totalExpense) * 100) : 0
           return (
-            <div key={d.name} className="flex items-center gap-1.5 min-w-0">
+            <div key={d.name + i} className="flex items-center gap-1.5 min-w-0">
               <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: d.color }} />
               <span className="text-[10px] text-gray-600 truncate">{d.name}</span>
               <span className="text-[10px] font-bold text-gray-700 tabular-nums ml-auto shrink-0">{pct.toFixed(0)}%</span>
@@ -64,3 +64,4 @@ export default function DonutChart({ summary }: Props) {
     </div>
   )
 }
+

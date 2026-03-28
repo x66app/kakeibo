@@ -1,125 +1,146 @@
-"use client"
-import { useState } from "react"
-import { addTransaction } from "@/lib/store"
-import { formatCurrency } from "@/lib/utils"
-import { getIcon } from "@/lib/icons"
-import { Category, TransactionType } from "@/lib/types"
-import NumPad from "@/components/NumPad"
-import CategorySheet from "@/components/CategorySheet"
-import { CheckCircle, Calendar, Folder, ChevronDown, StickyNote } from "lucide-react"
+"use client";
+import { useState } from "react";
+import { useMonth } from "@/contexts/MonthContext";
+import { useCategories, addTransaction } from "@/hooks/useSheets";
+import { getIcon } from "@/lib/icons";
+import { formatCurrency } from "@/lib/utils";
+import NumPad from "@/components/NumPad";
+import { Calendar, Tag, MessageSquare, Check, ChevronDown } from "lucide-react";
 
-const TYPE_TABS: { key: TransactionType; label: string; color: string }[] = [
-  { key: 'income', label: '収入', color: '#2B95ED' },
-  { key: 'personal_expense', label: '個人支出', color: '#F44E5E' },
-  { key: 'corporate_expense', label: '法人経費', color: '#FF9800' },
-]
+type TabType = "income" | "personal_expense" | "corporate_expense";
 
 export default function InputPage() {
-  const today = new Date()
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+  const { year, month } = useMonth();
+  const { categories } = useCategories();
 
-  const [type, setType] = useState<TransactionType>('personal_expense')
-  const [amount, setAmount] = useState('')
-  const [date, setDate] = useState(todayStr)
-  const [category, setCategory] = useState<Category | null>(null)
-  const [memo, setMemo] = useState('')
-  const [showCatSheet, setShowCatSheet] = useState(false)
-  const [saved, setSaved] = useState(false)
+  const [tab, setTab] = useState<TabType>("personal_expense");
+  const [amount, setAmount] = useState("0");
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [selectedCat, setSelectedCat] = useState<{ id: string; name: string; type: string; group: string } | null>(null);
+  const [memo, setMemo] = useState("");
+  const [showCats, setShowCats] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
 
-  const activeTab = TYPE_TABS.find(t => t.key === type)!
+  const filteredCats = categories.filter(c => {
+    if (tab === "income") return c.type === "income";
+    if (tab === "corporate_expense") return c.group === "corporate";
+    return c.type === "expense" && c.group === "personal";
+  });
 
-  const handleTypeChange = (t: TransactionType) => {
-    setType(t)
-    setCategory(null)
-  }
+  const handleAmount = (v: string) => {
+    
+    
+    setAmount(v || "0");
+  };
 
-  const handleSave = () => {
-    const amt = parseFloat(amount)
-    if (!amt || !category) return
+  const handleSave = async () => {
+    if (!selectedCat || amount === "0") return;
+    setSaving(true);
+    try {
+      await addTransaction({
+        date,
+        categoryId: selectedCat.id,
+        categoryName: selectedCat.name,
+        type: selectedCat.type,
+        group: selectedCat.group,
+        amount: Number(amount),
+        memo,
+      });
+      setSaved(true);
+      setTimeout(() => {
+        setAmount("0");
+        setMemo("");
+        setSaved(false);
+      }, 1500);
+    } catch (e) {
+      alert("保存に失敗しました");
+    }
+    setSaving(false);
+  };
 
-    addTransaction({ date, categoryId: category.id, amount: amt, memo, type })
-
-    setSaved(true)
-    setTimeout(() => {
-      setSaved(false)
-      setAmount('')
-      setMemo('')
-      setCategory(null)
-    }, 1200)
-  }
-
-  if (saved) {
-    return (
-      <div className="flex flex-col items-center justify-center h-[80vh] animate-fade-in">
-        <CheckCircle size={64} color="#4CAF50" />
-        <p className="mt-4 text-lg font-bold text-gray-800">保存しました</p>
-      </div>
-    )
-  }
-
-  const CatIcon = category ? getIcon(category.icon) : null
+  const tabs: { key: TabType; label: string }[] = [
+    { key: "income", label: "収入" },
+    { key: "personal_expense", label: "個人支出" },
+    { key: "corporate_expense", label: "法人経費" },
+  ];
 
   return (
-    <div className="bg-white min-h-screen">
-      <div className="flex border-b border-gray-100">
-        {TYPE_TABS.map(tab => (
-          <button
-            key={tab.key}
-            onClick={() => handleTypeChange(tab.key)}
-            className={`flex-1 py-3 text-sm font-bold transition-colors relative ${type === tab.key ? '' : 'text-gray-400'}`}
-            style={{ color: type === tab.key ? tab.color : undefined }}
-          >
-            {tab.label}
-            {type === tab.key && (
-              <div className="absolute bottom-0 left-1/4 right-1/4 h-0.5 rounded-full" style={{ backgroundColor: tab.color }} />
-            )}
+    <div className="pb-28 px-4 pt-4 max-w-lg mx-auto">
+      {/* タブ */}
+      <div className="flex gap-2 mb-4">
+        {tabs.map(t => (
+          <button key={t.key} onClick={() => { setTab(t.key); setSelectedCat(null); }}
+            className={`flex-1 py-2 rounded-lg text-sm font-medium transition ${tab === t.key ? "bg-blue-500 text-white" : "bg-white text-gray-600 border"}`}>
+            {t.label}
           </button>
         ))}
       </div>
 
-      <div className="px-4 pt-3 space-y-2.5">
-        <div className="flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-2.5">
-          <Calendar size={18} color="#999" />
+      {/* 日付 */}
+      <div className="bg-white rounded-2xl shadow-sm p-4 mb-3">
+        <div className="flex items-center gap-3 mb-3">
+          <Calendar size={18} className="text-gray-400" />
           <input type="date" value={date} onChange={e => setDate(e.target.value)}
-            className="flex-1 bg-transparent text-sm text-gray-800 outline-none" />
+            className="flex-1 text-sm border rounded-lg px-3 py-2" />
         </div>
-        <button onClick={() => setShowCatSheet(true)} className="w-full flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-2.5">
-          {category && CatIcon ? (
-            <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ backgroundColor: category.color + '22' }}>
-              <CatIcon size={14} color={category.color} />
-            </div>
-          ) : (
-            <Folder size={18} color="#999" />
-          )}
-          <span className={`flex-1 text-left text-sm ${category ? 'text-gray-800 font-medium' : 'text-gray-400'}`}>
-            {category ? category.name : 'カテゴリを選択'}
-          </span>
-          <ChevronDown size={16} color="#999" />
-        </button>
-        <div className="flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-2.5">
-          <StickyNote size={18} color="#999" />
-          <input type="text" value={memo} onChange={e => setMemo(e.target.value)} placeholder="メモ（任意）"
-            className="flex-1 bg-transparent text-sm text-gray-800 outline-none placeholder:text-gray-400" />
+
+        {/* カテゴリ選択 */}
+        <div className="flex items-center gap-3 mb-3">
+          <Tag size={18} className="text-gray-400" />
+          <button onClick={() => setShowCats(!showCats)}
+            className="flex-1 text-left text-sm border rounded-lg px-3 py-2 flex items-center justify-between">
+            {selectedCat ? (
+              <span className="flex items-center gap-2">
+                {(() => { const c = categories.find(c => c.id === selectedCat.id); const I = getIcon(c?.icon || "Tag"); return <I size={14} style={{ color: c?.color }} />; })()}
+                {selectedCat.name}
+              </span>
+            ) : <span className="text-gray-400">カテゴリを選択</span>}
+            <ChevronDown size={16} className="text-gray-400" />
+          </button>
+        </div>
+
+        {/* カテゴリ一覧 */}
+        {showCats && (
+          <div className="grid grid-cols-3 gap-2 mb-3">
+            {filteredCats.map(c => {
+              const Icon = getIcon(c.icon);
+              return (
+                <button key={c.id}
+                  onClick={() => { setSelectedCat({ id: c.id, name: c.name, type: c.type, group: c.group }); setShowCats(false); }}
+                  className={`flex flex-col items-center p-2 rounded-xl text-xs transition ${selectedCat?.id === c.id ? "bg-blue-50 ring-2 ring-blue-400" : "bg-gray-50"}`}>
+                  <Icon size={20} style={{ color: c.color }} />
+                  <span className="mt-1 text-gray-700 truncate w-full text-center">{c.name}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* メモ */}
+        <div className="flex items-center gap-3">
+          <MessageSquare size={18} className="text-gray-400" />
+          <input type="text" placeholder="メモ（任意）" value={memo}
+            onChange={e => setMemo(e.target.value)}
+            className="flex-1 text-sm border rounded-lg px-3 py-2" />
         </div>
       </div>
 
-      <div className="px-6 pt-4 pb-3 text-center">
-        <span className="text-3xl font-bold tabular-nums" style={{ color: activeTab.color }}>
-          {amount ? formatCurrency(parseFloat(amount)) : '\u00a50'}
-        </span>
+      {/* 金額表示 */}
+      <div className="text-center mb-2">
+        <p className="text-3xl font-bold text-gray-800 tabular-nums">¥{Number(amount).toLocaleString()}</p>
       </div>
 
-      <NumPad value={amount} onChange={setAmount} />
+      {/* テンキー */}
+      <NumPad value={amount} onChange={v => setAmount(v || "0")} />
 
-      <div className="px-4 mt-4 pb-8">
-        <button onClick={handleSave} disabled={!amount || !category}
-          className="w-full py-3.5 rounded-xl text-white font-bold text-base transition-all active:scale-[0.98] disabled:opacity-40"
-          style={{ backgroundColor: activeTab.color }}>
-          入力する
-        </button>
-      </div>
-
-      <CategorySheet type={type} open={showCatSheet} onClose={() => setShowCatSheet(false)} onSelect={setCategory} />
+      {/* 保存 */}
+      <button onClick={handleSave} disabled={saving || !selectedCat || amount === "0"}
+        className={`w-full mt-3 py-4 rounded-2xl font-bold text-white text-base transition ${saved ? "bg-green-500" : saving ? "bg-gray-400" : "bg-blue-500 active:bg-blue-600"} disabled:opacity-50`}>
+        {saved ? <span className="flex items-center justify-center gap-2"><Check size={20} /> 保存しました</span>
+          : saving ? "保存中..." : "保存する"}
+      </button>
     </div>
-  )
+  );
 }
+
