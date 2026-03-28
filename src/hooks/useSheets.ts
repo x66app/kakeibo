@@ -114,7 +114,7 @@ export function useTransactions(year: number, month: number) {
 }
 
 export function useYearTransactions(year: number) {
-  const [monthlySummaries, setMonthlySummaries] = useState<{ month: number; income: number; expense: number; balance: number }[]>([]);
+  const [monthlySummaries, setMonthlySummaries] = useState<{ month: number; income: number; expense: number; balance: number; byCategory: { categoryId: string; amount: number }[] }[]>([]);
   const [yearSummary, setYearSummary] = useState<MonthlySummaryData>({
     income: 0, personalExpense: 0, corporateExpense: 0,
     totalExpense: 0, balance: 0, savingsRate: 0, byCategory: [],
@@ -129,8 +129,8 @@ export function useYearTransactions(year: number) {
         const json = await res.json();
         const data = json.data || [];
 
-        const monthMap = new Map<number, { income: number; expense: number }>();
-        for (let m = 1; m <= 12; m++) monthMap.set(m, { income: 0, expense: 0 });
+        const monthMap = new Map<number, { income: number; expense: number; catMap: Map<string, number> }>();
+        for (let m = 1; m <= 12; m++) monthMap.set(m, { income: 0, expense: 0, catMap: new Map() });
 
         let income = 0, personalExpense = 0, corporateExpense = 0;
         const catMap = new Map<string, { categoryId: string; categoryName: string; type: string; group: string; amount: number }>();
@@ -145,6 +145,7 @@ export function useYearTransactions(year: number) {
             else personalExpense += t.amount;
             mm.expense += t.amount;
           }
+          mm.catMap.set(t.categoryId, (mm.catMap.get(t.categoryId) || 0) + t.amount);
           const key = t.categoryId;
           const existing = catMap.get(key);
           if (existing) existing.amount += t.amount;
@@ -158,6 +159,7 @@ export function useYearTransactions(year: number) {
 
         setMonthlySummaries(Array.from(monthMap.entries()).map(([m, v]) => ({
           month: m, income: v.income, expense: v.expense, balance: v.income - v.expense,
+          byCategory: Array.from(v.catMap.entries()).map(([id, amt]) => ({ categoryId: id, amount: amt })),
         })));
         setYearSummary({ income, personalExpense, corporateExpense, totalExpense, balance, savingsRate, byCategory });
       } catch (e) { console.error(e); }
@@ -203,5 +205,6 @@ export async function deleteTransaction(id: string) {
   const res = await fetch(`/api/transactions/${id}`, { method: "DELETE" });
   return res.json();
 }
+
 
 

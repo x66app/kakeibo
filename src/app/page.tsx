@@ -199,11 +199,71 @@ export default function HomePage() {
                     </div>
                     <span className="text-xs text-gray-400 ml-2 w-10 text-right">{pct}%</span>
                   </div>
-                  {isExpanded && (
-                    <div className="px-4 py-2 bg-gray-50">
-                      <p className="text-xs text-gray-500 mb-1">月平均: {formatCurrency(Math.round(c.amount / 12))}</p>
-                    </div>
-                  )}
+                  {isExpanded && (() => {
+                    const monthlyAmounts = monthlySummaries.map(ms => {
+                      const mc = (ms.byCategory || []).find((bc: any) => bc.categoryId === c.categoryId);
+                      return mc?.amount || 0;
+                    });
+                    const activeMonths = monthlyAmounts.filter(a => a > 0).length || 1;
+                    const avg = Math.round(c.amount / activeMonths);
+                    const maxAmt = Math.max(...monthlyAmounts, 1);
+                    return (
+                      <div className="px-4 py-3 bg-gray-50 border-b">
+                        <p className="text-xs font-semibold text-gray-500 mb-3">月平均: {formatCurrency(avg)}</p>
+                        <div className="relative mb-3" style={{ height: 180 }}>
+                          <svg viewBox="0 0 320 180" className="w-full h-full">
+                            {/* Y軸ラベル・グリッド */}
+                            {[0, 0.25, 0.5, 0.75, 1].map((r, i) => {
+                              const y = 150 - r * 130;
+                              const val = Math.round(maxAmt * r);
+                              const label = val >= 10000 ? `${Math.round(val / 10000)}万` : val >= 1000 ? `${(val / 1000).toFixed(0)}千` : String(val);
+                              return (
+                                <g key={i}>
+                                  <line x1="40" y1={y} x2="310" y2={y} stroke="#e5e7eb" strokeWidth="0.5" />
+                                  <text x="36" y={y + 3} textAnchor="end" fontSize="8" fill="#9ca3af">{label}</text>
+                                </g>
+                              );
+                            })}
+                            {/* 折れ線 */}
+                            <polyline
+                              fill="none"
+                              stroke={color}
+                              strokeWidth="2"
+                              strokeLinejoin="round"
+                              points={monthlyAmounts.map((a, i) => `${45 + i * (265 / 11)},${150 - (a / maxAmt) * 130}`).join(" ")}
+                            />
+                            {/* データポイント + X軸ラベル */}
+                            {monthlyAmounts.map((a, i) => {
+                              const x = 45 + i * (265 / 11);
+                              const y = 150 - (a / maxAmt) * 130;
+                              return (
+                                <g key={i}>
+                                  <circle cx={x} cy={y} r={a > 0 ? "3.5" : "2"} fill={a > 0 ? color : "#ddd"} />
+                                  <text x={x} y={168} textAnchor="middle" fontSize="8" fill="#9ca3af">{i + 1}月</text>
+                                </g>
+                              );
+                            })}
+                          </svg>
+                        </div>
+                        <div className="space-y-1">
+                          {monthlySummaries.map((ms, mi) => {
+                            const amt = monthlyAmounts[mi];
+                            return (
+                              <div key={mi} className="flex justify-between items-center py-1 border-b border-gray-100 last:border-b-0">
+                                <span className="text-xs text-gray-500 w-8">{mi + 1}月</span>
+                                <div className="flex-1 mx-2">
+                                  <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                    <div className="h-full rounded-full" style={{ width: `${maxAmt > 0 ? (amt / maxAmt) * 100 : 0}%`, backgroundColor: color }} />
+                                  </div>
+                                </div>
+                                <span className={`text-xs font-bold w-20 text-right ${amt > 0 ? "text-gray-800" : "text-gray-300"}`}>{amt > 0 ? formatCurrency(amt) : "-"}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               );
             })}
@@ -233,6 +293,10 @@ export default function HomePage() {
     </div>
   );
 }
+
+
+
+
 
 
 
