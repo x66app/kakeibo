@@ -1,21 +1,14 @@
 "use client"
 import { Category } from '@/lib/types'
 import { getActiveCategories } from '@/lib/store'
-import * as Icons from 'lucide-react'
+import { getIcon } from '@/lib/icons'
 import { X } from 'lucide-react'
-import { LucideProps } from 'lucide-react'
-import { ComponentType } from 'react'
 
 interface Props {
   type: string
   open: boolean
   onClose: () => void
   onSelect: (cat: Category) => void
-}
-
-function getIcon(name: string): ComponentType<LucideProps> {
-  const icon = (Icons as Record<string, ComponentType<LucideProps>>)[name]
-  return icon || Icons.Circle
 }
 
 export default function CategorySheet({ type, open, onClose, onSelect }: Props) {

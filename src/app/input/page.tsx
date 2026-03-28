@@ -1,19 +1,12 @@
 "use client"
 import { useState } from "react"
-import { addTransaction, getActiveCategories } from "@/lib/store"
+import { addTransaction } from "@/lib/store"
 import { formatCurrency } from "@/lib/utils"
+import { getIcon } from "@/lib/icons"
 import { Category, TransactionType } from "@/lib/types"
 import NumPad from "@/components/NumPad"
 import CategorySheet from "@/components/CategorySheet"
-import { CheckCircle } from "lucide-react"
-import * as Icons from "lucide-react"
-import { LucideProps } from "lucide-react"
-import { ComponentType } from "react"
-
-function getIcon(name: string): ComponentType<LucideProps> {
-  const icon = (Icons as Record<string, ComponentType<LucideProps>>)[name]
-  return icon || Icons.Circle
-}
+import { CheckCircle, Calendar, Folder, ChevronDown, StickyNote } from "lucide-react"
 
 const TYPE_TABS: { key: TransactionType; label: string; color: string }[] = [
   { key: 'income', label: '収入', color: '#2B95ED' },
@@ -44,13 +37,7 @@ export default function InputPage() {
     const amt = parseFloat(amount)
     if (!amt || !category) return
 
-    addTransaction({
-      date,
-      categoryId: category.id,
-      amount: amt,
-      memo,
-      type,
-    })
+    addTransaction({ date, categoryId: category.id, amount: amt, memo, type })
 
     setSaved(true)
     setTimeout(() => {
@@ -74,15 +61,12 @@ export default function InputPage() {
 
   return (
     <div className="bg-white min-h-screen">
-      {/* タブ */}
       <div className="flex border-b border-gray-100">
         {TYPE_TABS.map(tab => (
           <button
             key={tab.key}
             onClick={() => handleTypeChange(tab.key)}
-            className={`flex-1 py-3 text-sm font-bold transition-colors relative
-              ${type === tab.key ? '' : 'text-gray-400'}
-            `}
+            className={`flex-1 py-3 text-sm font-bold transition-colors relative ${type === tab.key ? '' : 'text-gray-400'}`}
             style={{ color: type === tab.key ? tab.color : undefined }}
           >
             {tab.label}
@@ -93,78 +77,49 @@ export default function InputPage() {
         ))}
       </div>
 
-      {/* 入力フィールド（電卓の上） */}
       <div className="px-4 pt-3 space-y-2.5">
-        {/* 日付 */}
         <div className="flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-2.5">
-          <Icons.Calendar size={18} color="#999" />
-          <input
-            type="date"
-            value={date}
-            onChange={e => setDate(e.target.value)}
-            className="flex-1 bg-transparent text-sm text-gray-800 outline-none"
-          />
+          <Calendar size={18} color="#999" />
+          <input type="date" value={date} onChange={e => setDate(e.target.value)}
+            className="flex-1 bg-transparent text-sm text-gray-800 outline-none" />
         </div>
-
-        {/* カテゴリ */}
-        <button
-          onClick={() => setShowCatSheet(true)}
-          className="w-full flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-2.5"
-        >
+        <button onClick={() => setShowCatSheet(true)} className="w-full flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-2.5">
           {category && CatIcon ? (
             <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ backgroundColor: category.color + '22' }}>
               <CatIcon size={14} color={category.color} />
             </div>
           ) : (
-            <Icons.Folder size={18} color="#999" />
+            <Folder size={18} color="#999" />
           )}
           <span className={`flex-1 text-left text-sm ${category ? 'text-gray-800 font-medium' : 'text-gray-400'}`}>
             {category ? category.name : 'カテゴリを選択'}
           </span>
-          <Icons.ChevronDown size={16} color="#999" />
+          <ChevronDown size={16} color="#999" />
         </button>
-
-        {/* メモ */}
         <div className="flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-2.5">
-          <Icons.StickyNote size={18} color="#999" />
-          <input
-            type="text"
-            value={memo}
-            onChange={e => setMemo(e.target.value)}
-            placeholder="メモ（任意）"
-            className="flex-1 bg-transparent text-sm text-gray-800 outline-none placeholder:text-gray-400"
-          />
+          <StickyNote size={18} color="#999" />
+          <input type="text" value={memo} onChange={e => setMemo(e.target.value)} placeholder="メモ（任意）"
+            className="flex-1 bg-transparent text-sm text-gray-800 outline-none placeholder:text-gray-400" />
         </div>
       </div>
 
-      {/* 金額表示 */}
       <div className="px-6 pt-4 pb-3 text-center">
         <span className="text-3xl font-bold tabular-nums" style={{ color: activeTab.color }}>
           {amount ? formatCurrency(parseFloat(amount)) : '\u00a50'}
         </span>
       </div>
 
-      {/* 電卓 */}
       <NumPad value={amount} onChange={setAmount} />
 
-      {/* 保存ボタン */}
       <div className="px-4 mt-4 pb-8">
-        <button
-          onClick={handleSave}
-          disabled={!amount || !category}
+        <button onClick={handleSave} disabled={!amount || !category}
           className="w-full py-3.5 rounded-xl text-white font-bold text-base transition-all active:scale-[0.98] disabled:opacity-40"
-          style={{ backgroundColor: activeTab.color }}
-        >
+          style={{ backgroundColor: activeTab.color }}>
           入力する
         </button>
       </div>
 
-      <CategorySheet
-        type={type}
-        open={showCatSheet}
-        onClose={() => setShowCatSheet(false)}
-        onSelect={setCategory}
-      />
+      <CategorySheet type={type} open={showCatSheet} onClose={() => setShowCatSheet(false)} onSelect={setCategory} />
     </div>
   )
 }

@@ -3,20 +3,14 @@ import { useState } from "react"
 import { useMonth } from "@/contexts/MonthContext"
 import { getMonthlySummary, getMonthTransactions } from "@/lib/store"
 import { formatCurrency } from "@/lib/utils"
+import { getIcon } from "@/lib/icons"
 import MonthSelector from "@/components/MonthSelector"
 import DonutChart from "@/components/DonutChart"
 import MonthlyBarChart from "@/components/MonthlyBarChart"
 import TransactionList from "@/components/TransactionList"
 import CategoryLineChart from "@/components/CategoryLineChart"
 import { MonthlySummary } from "@/lib/types"
-import * as Icons from "lucide-react"
-import { LucideProps } from "lucide-react"
-import { ComponentType } from "react"
-
-function getIcon(name: string): ComponentType<LucideProps> {
-  const icon = (Icons as Record<string, ComponentType<LucideProps>>)[name]
-  return icon || Icons.Circle
-}
+import { ChevronDown } from "lucide-react"
 
 type ViewMode = 'monthly' | 'yearly'
 
@@ -31,11 +25,8 @@ function getYearlySummary(year: number): MonthlySummary {
     corporateExpense += s.corporateExpense
     s.byCategory.forEach(c => {
       const existing = byCatMap.get(c.categoryId)
-      if (existing) {
-        existing.amount += c.amount
-      } else {
-        byCatMap.set(c.categoryId, { ...c })
-      }
+      if (existing) { existing.amount += c.amount }
+      else { byCatMap.set(c.categoryId, { ...c }) }
     })
   }
 
@@ -59,37 +50,23 @@ export default function HomePage() {
   const summary = view === 'monthly' ? monthlySummary : yearlySummary
   const transactions = getMonthTransactions(year, month)
 
-  const selectedCatData = selectedCatId ? summary.byCategory.find(c => c.categoryId === selectedCatId) : null
-
   return (
     <div>
       <MonthSelector />
 
-      {/* 月次 / 年間 切替タブ */}
       <div className="mx-4 mt-3 flex bg-gray-100 rounded-xl p-1">
-        <button
-          onClick={() => { setView('monthly'); setSelectedCatId(null) }}
-          className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all
-            ${view === 'monthly' ? 'bg-white text-[#2B95ED] shadow-sm' : 'text-gray-400'}
-          `}
-        >
+        <button onClick={() => { setView('monthly'); setSelectedCatId(null) }}
+          className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${view === 'monthly' ? 'bg-white text-[#2B95ED] shadow-sm' : 'text-gray-400'}`}>
           {month}月
         </button>
-        <button
-          onClick={() => { setView('yearly'); setSelectedCatId(null) }}
-          className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all
-            ${view === 'yearly' ? 'bg-white text-[#2B95ED] shadow-sm' : 'text-gray-400'}
-          `}
-        >
+        <button onClick={() => { setView('yearly'); setSelectedCatId(null) }}
+          className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${view === 'yearly' ? 'bg-white text-[#2B95ED] shadow-sm' : 'text-gray-400'}`}>
           {year}年 年間
         </button>
       </div>
 
-      {/* 収支サマリーカード */}
       <div className="mx-4 mt-3 bg-white rounded-2xl p-4 shadow-sm animate-fade-in">
-        <h2 className="text-xs font-bold text-gray-500 mb-3">
-          {view === 'monthly' ? '今月の収支' : `${year}年 年間収支`}
-        </h2>
+        <h2 className="text-xs font-bold text-gray-500 mb-3">{view === 'monthly' ? '今月の収支' : `${year}年 年間収支`}</h2>
         <div className="flex justify-between items-center mb-1">
           <span className="text-sm text-gray-600">収入</span>
           <span className="text-lg font-bold text-[#2B95ED] tabular-nums">{formatCurrency(summary.income)}</span>
@@ -113,7 +90,6 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* 支出内訳カード */}
       <div className="mx-4 mt-3 bg-white rounded-2xl p-4 shadow-sm animate-fade-in">
         <h2 className="text-xs font-bold text-gray-500 mb-2">支出内訳</h2>
         <DonutChart summary={summary} />
@@ -131,7 +107,6 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* 年間ビュー: 月次推移グラフ */}
       {view === 'yearly' && (
         <div className="mx-4 mt-3 bg-white rounded-2xl p-4 shadow-sm animate-fade-in">
           <h2 className="text-xs font-bold text-gray-500 mb-2">月別推移</h2>
@@ -139,7 +114,6 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* 年間ビュー: カテゴリ別ランキング (タップで折れ線グラフ) */}
       {view === 'yearly' && summary.byCategory.length > 0 && (
         <div className="mx-4 mt-3 bg-white rounded-2xl shadow-sm overflow-hidden animate-fade-in">
           <div className="px-4 pt-4 pb-2">
@@ -156,10 +130,8 @@ export default function HomePage() {
 
             return (
               <div key={c.categoryId}>
-                <button
-                  onClick={() => setSelectedCatId(isSelected ? null : c.categoryId)}
-                  className={`w-full text-left px-4 py-3 transition-colors ${i > 0 ? 'border-t border-gray-50' : ''} ${isSelected ? 'bg-[#F8FBFF]' : 'active:bg-gray-50'}`}
-                >
+                <button onClick={() => setSelectedCatId(isSelected ? null : c.categoryId)}
+                  className={`w-full text-left px-4 py-3 transition-colors ${i > 0 ? 'border-t border-gray-50' : ''} ${isSelected ? 'bg-[#F8FBFF]' : 'active:bg-gray-50'}`}>
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: c.color + '22' }}>
                       <Icon size={16} color={c.color} />
@@ -179,23 +151,12 @@ export default function HomePage() {
                       </div>
                       <p className="text-[10px] text-gray-400 mt-0.5 tabular-nums">月平均 {formatCurrency(Math.round(monthlyAvg))}</p>
                     </div>
-                    <Icons.ChevronDown
-                      size={14}
-                      color="#999"
-                      className={`shrink-0 transition-transform ${isSelected ? 'rotate-180' : ''}`}
-                    />
+                    <ChevronDown size={14} color="#999" className={`shrink-0 transition-transform ${isSelected ? 'rotate-180' : ''}`} />
                   </div>
                 </button>
-
-                {/* 折れ線グラフ（選択時に展開） */}
                 {isSelected && (
                   <div className="px-4 pb-4 bg-[#F8FBFF] animate-fade-in">
-                    <CategoryLineChart
-                      year={year}
-                      categoryId={c.categoryId}
-                      color={c.color}
-                      categoryName={c.name}
-                    />
+                    <CategoryLineChart year={year} categoryId={c.categoryId} color={c.color} categoryName={c.name} />
                   </div>
                 )}
               </div>
@@ -204,7 +165,6 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* 月次ビュー: 最近の入出金 */}
       {view === 'monthly' && (
         <div className="mx-4 mt-3 bg-white rounded-2xl shadow-sm overflow-hidden animate-fade-in mb-4">
           <div className="px-4 pt-4 pb-2">

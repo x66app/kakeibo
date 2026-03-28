@@ -1,19 +1,12 @@
 "use client"
 import { useState } from "react"
 import { useMonth } from "@/contexts/MonthContext"
-import { getMonthlySummary } from "@/lib/store"
+import { getMonthlySummary, getCategories } from "@/lib/store"
 import { formatCurrency } from "@/lib/utils"
+import { getIcon } from "@/lib/icons"
 import MonthSelector from "@/components/MonthSelector"
 import DonutChart from "@/components/DonutChart"
 import MonthlyBarChart from "@/components/MonthlyBarChart"
-import * as Icons from "lucide-react"
-import { LucideProps } from "lucide-react"
-import { ComponentType } from "react"
-
-function getIcon(name: string): ComponentType<LucideProps> {
-  const icon = (Icons as Record<string, ComponentType<LucideProps>>)[name]
-  return icon || Icons.Circle
-}
 
 type Filter = 'all' | 'personal_expense' | 'corporate_expense'
 
@@ -22,22 +15,11 @@ export default function BudgetPage() {
   const summary = getMonthlySummary(year, month)
   const [filter, setFilter] = useState<Filter>('all')
 
-  const filtered = filter === 'all'
-    ? summary.byCategory
-    : summary.byCategory.filter(c => {
-        if (filter === 'personal_expense') {
-          return !['c18', 'c19', 'c20'].includes(c.categoryId) &&
-            !c.categoryId.startsWith('corporate')
-        }
-        return ['c18', 'c19', 'c20'].includes(c.categoryId)
-      })
-
-  // 個人/法人をちゃんと判定するため store から categories を取得
-  const allCats = require('@/lib/store').getCategories()
+  const allCats = getCategories()
   const filteredByType = filter === 'all'
     ? summary.byCategory
     : summary.byCategory.filter(c => {
-        const cat = allCats.find((ca: { id: string; type: string }) => ca.id === c.categoryId)
+        const cat = allCats.find(ca => ca.id === c.categoryId)
         return cat?.type === filter
       })
 
@@ -47,7 +29,6 @@ export default function BudgetPage() {
     <div>
       <MonthSelector />
 
-      {/* 収支サマリー */}
       <div className="mx-4 mt-4 bg-white rounded-2xl p-4 shadow-sm animate-fade-in">
         <div className="flex justify-between items-center mb-1">
           <span className="text-sm text-gray-600">収入</span>
@@ -66,13 +47,11 @@ export default function BudgetPage() {
         </div>
       </div>
 
-      {/* 円グラフ */}
       <div className="mx-4 mt-3 bg-white rounded-2xl p-4 shadow-sm animate-fade-in">
         <h2 className="text-xs font-bold text-gray-500 mb-1">支出内訳</h2>
         <DonutChart summary={summary} />
       </div>
 
-      {/* フィルタ */}
       <div className="mx-4 mt-3 flex gap-2">
         {([
           { key: 'all', label: '全て' },
@@ -91,7 +70,6 @@ export default function BudgetPage() {
         ))}
       </div>
 
-      {/* カテゴリ別一覧 */}
       <div className="mx-4 mt-3 bg-white rounded-2xl shadow-sm overflow-hidden animate-fade-in">
         {filteredByType.map((c, i) => {
           const Icon = getIcon(c.icon)
@@ -121,7 +99,6 @@ export default function BudgetPage() {
         })}
       </div>
 
-      {/* 月次推移グラフ */}
       <div className="mx-4 mt-3 mb-4 bg-white rounded-2xl p-4 shadow-sm animate-fade-in">
         <h2 className="text-xs font-bold text-gray-500 mb-2">月次推移</h2>
         <MonthlyBarChart year={year} />

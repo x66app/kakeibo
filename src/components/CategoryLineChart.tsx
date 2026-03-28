@@ -21,19 +21,8 @@ export default function CategoryLineChart({ year, categoryId, color, categoryNam
     }
   })
 
-  const maxVal = Math.max(...data.map(d => d.amount), 1)
-
-  const renderTooltip = ({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number }>; label?: string }) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-white shadow-lg rounded-lg px-3 py-2 text-xs border">
-          <p className="font-bold">{label}</p>
-          <p style={{ color }}>{formatCurrency(payload[0].value)}</p>
-        </div>
-      )
-    }
-    return null
-  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tooltipFormatter = (value: any) => [formatCurrency(Number(value)), categoryName]
 
   return (
     <div className="mt-3">
@@ -44,7 +33,11 @@ export default function CategoryLineChart({ year, categoryId, color, categoryNam
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
             <XAxis dataKey="name" tick={{ fontSize: 10 }} />
             <YAxis tick={{ fontSize: 9 }} tickFormatter={v => v >= 10000 ? `${(v / 10000).toFixed(0)}万` : `${v}`} />
-            <Tooltip content={renderTooltip} />
+            <Tooltip
+              formatter={tooltipFormatter}
+              labelStyle={{ fontWeight: 'bold', fontSize: 12 }}
+              contentStyle={{ borderRadius: 8, fontSize: 12 }}
+            />
             <Line
               type="monotone"
               dataKey="amount"

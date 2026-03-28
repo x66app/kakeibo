@@ -1,21 +1,15 @@
 "use client"
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useMonth } from "@/contexts/MonthContext"
-import { getMonthTransactions, deleteTransaction, getTransactions, getCategories, getActiveCategories } from "@/lib/store"
+import { getMonthTransactions, deleteTransaction, getTransactions, getCategories } from "@/lib/store"
 import { formatCurrency } from "@/lib/utils"
+import { getIcon } from "@/lib/icons"
 import { Transaction, Category } from "@/lib/types"
 import MonthSelector from "@/components/MonthSelector"
 import TransactionList from "@/components/TransactionList"
 import CategorySheet from "@/components/CategorySheet"
 import { X, Trash2, Pencil, Save } from "lucide-react"
 import * as Icons from "lucide-react"
-import { LucideProps } from "lucide-react"
-import { ComponentType } from "react"
-
-function getIcon(name: string): ComponentType<LucideProps> {
-  const icon = (Icons as Record<string, ComponentType<LucideProps>>)[name]
-  return icon || Icons.Circle
-}
 
 export default function TransactionsPage() {
   const { year, month } = useMonth()
@@ -103,19 +97,12 @@ export default function TransactionsPage() {
         <TransactionList transactions={transactions} onItemClick={t => { setSelected(t); setEditing(false) }} />
       </div>
 
-      {/* 詳細 / 編集モーダル */}
       {selected && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4" onClick={closeModal}>
           <div className="absolute inset-0 bg-black/40" />
-          <div
-            className="relative w-full max-w-sm bg-white rounded-2xl shadow-xl animate-fade-in overflow-hidden"
-            onClick={e => e.stopPropagation()}
-          >
-            {/* ヘッダー */}
+          <div className="relative w-full max-w-sm bg-white rounded-2xl shadow-xl animate-fade-in overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 pt-5 pb-3">
-              <h3 className="text-base font-bold text-gray-800">
-                {editing ? '明細を編集' : '明細詳細'}
-              </h3>
+              <h3 className="text-base font-bold text-gray-800">{editing ? '明細を編集' : '明細詳細'}</h3>
               <div className="flex items-center gap-1">
                 {!editing && (
                   <button onClick={() => startEdit(selected)} className="p-2 rounded-full active:bg-gray-100">
@@ -129,12 +116,8 @@ export default function TransactionsPage() {
             </div>
 
             <div className="px-5 pb-2">
-              {/* カテゴリアイコン + 名前 */}
               {editing ? (
-                <button
-                  onClick={() => setShowCatSheet(true)}
-                  className="w-full flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-3 mb-3"
-                >
+                <button onClick={() => setShowCatSheet(true)} className="w-full flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-3 mb-3">
                   {displayCat && CatIcon ? (
                     <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: displayCat.color + '22' }}>
                       <CatIcon size={16} color={displayCat.color} />
@@ -159,7 +142,6 @@ export default function TransactionsPage() {
                 </div>
               )}
 
-              {/* フィールド */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-500">日付</span>
@@ -170,7 +152,6 @@ export default function TransactionsPage() {
                     <span className="text-sm font-medium text-gray-800">{selected.date}</span>
                   )}
                 </div>
-
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-500">金額</span>
                   {editing ? (
@@ -182,7 +163,6 @@ export default function TransactionsPage() {
                     </span>
                   )}
                 </div>
-
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-500">メモ</span>
                   {editing ? (
@@ -195,7 +175,6 @@ export default function TransactionsPage() {
               </div>
             </div>
 
-            {/* アクションボタン */}
             <div className="px-5 pt-3 pb-5 space-y-2">
               {editing ? (
                 <button onClick={handleSaveEdit}
@@ -213,7 +192,6 @@ export default function TransactionsPage() {
         </div>
       )}
 
-      {/* カテゴリ変更用シート */}
       {editing && selected && (
         <CategorySheet
           type={editCategory?.type || selected.type}

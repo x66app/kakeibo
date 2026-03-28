@@ -23,18 +23,11 @@ export default function DonutChart({ summary }: Props) {
     return <div className="h-48 flex items-center justify-center text-gray-400 text-sm">データなし</div>
   }
 
-  const renderTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ name: string; value: number }> }) => {
-    if (active && payload && payload.length) {
-      const pct = summary.totalExpense > 0 ? ((payload[0].value / summary.totalExpense) * 100).toFixed(1) : '0'
-      return (
-        <div className="bg-white shadow-lg rounded-lg px-3 py-2 text-xs border">
-          <p className="font-bold">{payload[0].name}</p>
-          <p>{formatCurrency(payload[0].value)}</p>
-          <p className="text-gray-400">{pct}%</p>
-        </div>
-      )
-    }
-    return null
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tooltipFormatter = (value: any, name: any) => {
+    const v = Number(value)
+    const pct = summary.totalExpense > 0 ? ((v / summary.totalExpense) * 100).toFixed(1) : '0'
+    return [`${formatCurrency(v)} (${pct}%)`, name]
   }
 
   return (
@@ -48,12 +41,14 @@ export default function DonutChart({ summary }: Props) {
             <Pie data={outerData} dataKey="value" cx="50%" cy="50%" innerRadius={66} outerRadius={85} paddingAngle={1}>
               {outerData.map((d, i) => <Cell key={i} fill={d.color} />)}
             </Pie>
-            <Tooltip content={renderTooltip} />
+            <Tooltip
+              formatter={tooltipFormatter}
+              contentStyle={{ borderRadius: 8, fontSize: 12 }}
+            />
           </PieChart>
         </ResponsiveContainer>
       </div>
 
-      {/* カテゴリ別 凡例（金額 + %） */}
       <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 mt-2 px-1">
         {outerData.map(d => {
           const pct = summary.totalExpense > 0 ? ((d.value / summary.totalExpense) * 100) : 0

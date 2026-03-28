@@ -2,14 +2,7 @@
 import { Transaction, Category } from '@/lib/types'
 import { getCategories } from '@/lib/store'
 import { formatCurrency, formatDate } from '@/lib/utils'
-import * as Icons from 'lucide-react'
-import { LucideProps } from 'lucide-react'
-import { ComponentType } from 'react'
-
-function getIcon(name: string): ComponentType<LucideProps> {
-  const icon = (Icons as Record<string, ComponentType<LucideProps>>)[name]
-  return icon || Icons.Circle
-}
+import { getIcon } from '@/lib/icons'
 
 interface Props {
   transactions: Transaction[]
