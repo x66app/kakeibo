@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next"
 import "./globals.css"
-import BottomNav from "@/components/BottomNav"
-import { MonthProvider } from "@/contexts/MonthContext"
+import ClientLayout from "./client-layout"
 
 export const metadata: Metadata = {
   title: "家計簿アプリ",
@@ -20,12 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ja">
       <body>
-        <MonthProvider>
-          <div className="max-w-lg mx-auto min-h-screen bg-[#F5F6FA] pb-20">
-            {children}
-          </div>
-          <BottomNav />
-        </MonthProvider>
+        <ClientLayout>{children}</ClientLayout>
       </body>
     </html>
   )
