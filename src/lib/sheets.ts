@@ -14,7 +14,7 @@ function getAuth() {
   }
   // Vercel等ではenv変数から
   const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL!;
-  const key = process.env.GOOGLE_PRIVATE_KEY!.replace(/\\n/g, '\n');
+  const key = (process.env.GOOGLE_PRIVATE_KEY || '').replace(/\\n/g, '\n');
   return new google.auth.GoogleAuth({
     credentials: { client_email: email, private_key: key },
     scopes: ['https://www.googleapis.com/auth/spreadsheets'],
@@ -108,3 +108,4 @@ export async function deleteRaw(id: string) {
   await sheets.spreadsheets.values.clear({ spreadsheetId: SS_ID, range: `_raw!A${idx + 1}:K${idx + 1}` });
   return { id };
 }
+
