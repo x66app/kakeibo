@@ -1,264 +1,184 @@
-"use client"
-import { useState } from "react"
-import { getActiveCategories, addCategory, deleteCategory, reorderCategories } from "@/lib/store"
-import { TransactionType } from "@/lib/types"
-import { CATEGORY_COLORS } from "@/lib/colors"
-import { getIcon } from "@/lib/icons"
-import { changePassword, getCurrentPassword, logout } from "@/components/AuthGuard"
-import { Plus, Trash2, ChevronUp, ChevronDown, X, KeyRound, LogOut, Check } from "lucide-react"
+"use client";
+import { useState, useEffect } from "react";
+import { Plus, Trash2, ChevronUp, ChevronDown, LogOut, Lock, Tag } from "lucide-react";
+import { getActiveCategories, addCategory, deleteCategory, reorderCategories } from "@/lib/store";
+import { changePassword, logout } from "@/components/AuthGuard";
+import { getIcon } from "@/lib/icons";
+import { Category, TransactionType } from "@/lib/types";
+import { CATEGORY_COLORS } from "@/lib/colors";
 
-const TYPE_TABS: { key: TransactionType; label: string }[] = [
-  { key: 'personal_expense', label: '個人支出' },
-  { key: 'corporate_expense', label: '法人経費' },
-  { key: 'income', label: '収入' },
-]
-
-const ICON_OPTIONS = [
-  'Home', 'Smartphone', 'Scissors', 'ShoppingCart', 'UtensilsCrossed',
-  'Package', 'Coffee', 'Gamepad2', 'Users', 'BookOpen', 'Fuel',
-  'Handshake', 'Heart', 'Cross', 'Train', 'MoreHorizontal', 'Building2',
-  'UserCheck', 'Landmark', 'Receipt', 'Briefcase', 'Laptop', 'Coins',
-  'Car', 'Wifi', 'Music', 'Camera', 'Gift', 'Zap', 'Star',
-]
+const ICONS = ["Home","Utensils","Car","Smartphone","ShoppingBag","Heart","Briefcase","GraduationCap",
+  "Plane","Gift","Music","Coffee","Dumbbell","Wifi","Droplets","Zap","Flame","PiggyBank",
+  "CreditCard","Building","Monitor","Printer","Users","TrendingUp","Banknote","Wallet"];
 
 export default function SettingsPage() {
-  const [tab, setTab] = useState<TransactionType>('personal_expense')
-  const [refreshKey, setRefreshKey] = useState(0)
-  const [showAdd, setShowAdd] = useState(false)
-  const [newName, setNewName] = useState('')
-  const [newIcon, setNewIcon] = useState('Circle')
-  const [showPassChange, setShowPassChange] = useState(false)
-  const [currentPass, setCurrentPass] = useState('')
-  const [newPass, setNewPass] = useState('')
-  const [confirmPass, setConfirmPass] = useState('')
-  const [passError, setPassError] = useState('')
-  const [passSuccess, setPassSuccess] = useState(false)
+  const [tab, setTab] = useState<TransactionType>("personal_expense");
+  const [cats, setCats] = useState<Category[]>([]);
+  const [showAdd, setShowAdd] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newIcon, setNewIcon] = useState("Tag");
+  const [newColor, setNewColor] = useState(CATEGORY_COLORS[0]);
 
-  const cats = getActiveCategories(tab)
-  const refresh = () => setRefreshKey(k => k + 1)
+  /* パスワード変更 */
+  const [currentPw, setCurrentPw] = useState("");
+  const [newPw, setNewPw] = useState("");
+  const [confirmPw, setConfirmPw] = useState("");
+  const [pwMsg, setPwMsg] = useState("");
+  const [pwError, setPwError] = useState("");
 
-  const handleDelete = (id: string) => {
-    if (confirm('このカテゴリを削除しますか？\n（過去のデータは保持されます）')) {
-      deleteCategory(id)
-      refresh()
-    }
-  }
-
-  const handleMoveUp = (index: number) => {
-    if (index === 0) return
-    const ids = cats.map(c => c.id)
-    const tmp = ids[index]; ids[index] = ids[index - 1]; ids[index - 1] = tmp
-    reorderCategories(tab, ids); refresh()
-  }
-
-  const handleMoveDown = (index: number) => {
-    if (index === cats.length - 1) return
-    const ids = cats.map(c => c.id)
-    const tmp = ids[index]; ids[index] = ids[index + 1]; ids[index + 1] = tmp
-    reorderCategories(tab, ids); refresh()
-  }
+  const load = () => setCats(getActiveCategories().filter(c => c.type === tab));
+  useEffect(() => { load(); }, [tab]);
 
   const handleAdd = () => {
-    if (!newName.trim()) return
-    const usedColors = cats.map(c => c.color)
-    const color = CATEGORY_COLORS.find(c => !usedColors.includes(c)) || CATEGORY_COLORS[0]
-    addCategory({ name: newName.trim(), type: tab, icon: newIcon, color })
-    setNewName(''); setNewIcon('Circle'); setShowAdd(false); refresh()
-  }
+    if (!newName.trim()) return;
+    addCategory({ name: newName.trim(), type: tab, icon: newIcon, color: newColor });
+    setNewName(""); setShowAdd(false); load();
+  };
 
-  const handlePasswordChange = () => {
-    setPassError('')
-    if (currentPass !== getCurrentPassword()) {
-      setPassError('現在のパスコードが違います')
-      return
-    }
-    if (newPass.length < 4) {
-      setPassError('4桁以上で入力してください')
-      return
-    }
-    if (newPass !== confirmPass) {
-      setPassError('新しいパスコードが一致しません')
-      return
-    }
-    changePassword(newPass)
-    setPassSuccess(true)
-    setTimeout(() => {
-      setShowPassChange(false)
-      setPassSuccess(false)
-      setCurrentPass('')
-      setNewPass('')
-      setConfirmPass('')
-    }, 1200)
-  }
+  const move = (id: string, dir: -1 | 1) => {
+    const idx = cats.findIndex(c => c.id === id);
+    if ((dir === -1 && idx === 0) || (dir === 1 && idx === cats.length - 1)) return;
+    const arr = [...cats];
+    [arr[idx], arr[idx + dir]] = [arr[idx + dir], arr[idx]];
+    reorderCategories(tab, arr.map(c => c.id));
+    load();
+  };
 
-  const handleLogout = () => {
-    logout()
-    window.location.reload()
-  }
+  const handleChangePw = () => {
+    setPwMsg(""); setPwError("");
+    if (!currentPw || !newPw || !confirmPw) { setPwError("すべて入力してください"); return; }
+    if (newPw.length < 4) { setPwError("4桁以上で入力してください"); return; }
+    if (newPw !== confirmPw) { setPwError("新しいパスコードが一致しません"); return; }
+    const ok = changePassword(currentPw, newPw);
+    if (!ok) { setPwError("現在のパスコードが間違っています"); return; }
+    setPwMsg("パスコードを変更しました");
+    setCurrentPw(""); setNewPw(""); setConfirmPw("");
+  };
+
+  const tabs: { key: TransactionType; label: string }[] = [
+    { key: "personal_expense", label: "個人支出" },
+    { key: "corporate_expense", label: "法人経費" },
+    { key: "income", label: "収入" },
+  ];
 
   return (
-    <div key={refreshKey}>
-      <div className="sticky top-0 z-40 bg-white border-b border-gray-100">
-        <div className="max-w-lg mx-auto h-12 flex items-center justify-center">
-          <span className="text-base font-bold text-gray-800">設定</span>
-        </div>
-      </div>
+    <div className="pb-28 px-4 pt-4 max-w-lg mx-auto">
+      <h1 className="text-lg font-bold text-gray-800 mb-4">設定</h1>
 
-      {/* カテゴリタブ */}
-      <div className="flex border-b border-gray-100 bg-white">
-        {TYPE_TABS.map(t => (
-          <button key={t.key} onClick={() => setTab(t.key)}
-            className={`flex-1 py-3 text-sm font-bold transition-colors relative ${tab === t.key ? 'text-[#2B95ED]' : 'text-gray-400'}`}>
-            {t.label}
-            {tab === t.key && <div className="absolute bottom-0 left-1/4 right-1/4 h-0.5 bg-[#2B95ED] rounded-full" />}
-          </button>
-        ))}
-      </div>
-
-      {/* カテゴリ一覧 */}
-      <div className="mx-4 mt-4 bg-white rounded-2xl shadow-sm overflow-hidden animate-fade-in">
-        <div className="px-4 py-3 border-b border-gray-50">
-          <h3 className="text-xs font-bold text-gray-500">カテゴリ管理</h3>
+      {/* ===== カテゴリ管理 ===== */}
+      <section className="mb-8">
+        <div className="flex items-center gap-2 mb-3">
+          <Tag size={18} className="text-gray-600" />
+          <h2 className="font-semibold text-gray-700">カテゴリ管理</h2>
         </div>
-        {cats.map((cat, i) => {
-          const Icon = getIcon(cat.icon)
-          return (
-            <div key={cat.id} className="flex items-center gap-2 px-4 py-2.5 border-b border-gray-50">
-              <div className="flex flex-col gap-0.5">
-                <button onClick={() => handleMoveUp(i)} className="p-0.5 active:bg-gray-100 rounded" disabled={i === 0}>
-                  <ChevronUp size={14} color={i === 0 ? '#ddd' : '#999'} />
+
+        <div className="flex gap-2 mb-3">
+          {tabs.map(t => (
+            <button key={t.key} onClick={() => setTab(t.key)}
+              className={`flex-1 py-2 rounded-lg text-sm font-medium transition ${
+                tab === t.key ? "bg-blue-500 text-white" : "bg-white text-gray-600 border"
+              }`}>{t.label}</button>
+          ))}
+        </div>
+
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          {cats.map((c) => {
+            const Icon = getIcon(c.icon);
+            return (
+              <div key={c.id} className="flex items-center px-4 py-3 border-b last:border-b-0">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center mr-3"
+                  style={{ backgroundColor: c.color + "22" }}>
+                  <Icon size={16} style={{ color: c.color }} />
+                </div>
+                <span className="flex-1 text-sm text-gray-800">{c.name}</span>
+                <button onClick={() => move(c.id, -1)} className="p-1 text-gray-400 hover:text-gray-600">
+                  <ChevronUp size={16} />
                 </button>
-                <button onClick={() => handleMoveDown(i)} className="p-0.5 active:bg-gray-100 rounded" disabled={i === cats.length - 1}>
-                  <ChevronDown size={14} color={i === cats.length - 1 ? '#ddd' : '#999'} />
+                <button onClick={() => move(c.id, 1)} className="p-1 text-gray-400 hover:text-gray-600">
+                  <ChevronDown size={16} />
+                </button>
+                <button onClick={() => { deleteCategory(c.id); load(); }}
+                  className="p-1 text-gray-400 hover:text-red-500 ml-1">
+                  <Trash2 size={16} />
                 </button>
               </div>
-              <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: cat.color + '22' }}>
-                <Icon size={16} color={cat.color} />
-              </div>
-              <span className="flex-1 text-sm text-gray-800">{cat.name}</span>
-              <button onClick={() => handleDelete(cat.id)} className="p-2 active:bg-red-50 rounded-lg">
-                <Trash2 size={16} color="#F44E5E" />
-              </button>
-            </div>
-          )
-        })}
-      </div>
+            );
+          })}
+        </div>
 
-      {/* カテゴリ追加ボタン */}
-      <div className="mx-4 mt-3">
         <button onClick={() => setShowAdd(true)}
-          className="w-full py-3 rounded-xl bg-white border-2 border-dashed border-gray-200 text-sm font-bold text-[#2B95ED] flex items-center justify-center gap-2 active:bg-gray-50 transition">
-          <Plus size={18} /> カテゴリを追加
+          className="mt-3 w-full py-3 rounded-xl border-2 border-dashed border-gray-300 text-gray-500 text-sm flex items-center justify-center gap-1 hover:border-blue-400 hover:text-blue-500 transition">
+          <Plus size={16} /> カテゴリを追加
         </button>
-      </div>
+      </section>
 
-      {/* セキュリティセクション */}
-      <div className="mx-4 mt-6 bg-white rounded-2xl shadow-sm overflow-hidden animate-fade-in">
-        <div className="px-4 py-3 border-b border-gray-50">
-          <h3 className="text-xs font-bold text-gray-500">セキュリティ</h3>
+      {/* ===== パスコード変更 ===== */}
+      <section className="mb-8">
+        <div className="flex items-center gap-2 mb-3">
+          <Lock size={18} className="text-gray-600" />
+          <h2 className="font-semibold text-gray-700">パスコード変更</h2>
         </div>
-        <button onClick={() => setShowPassChange(true)}
-          className="w-full flex items-center gap-3 px-4 py-3.5 border-b border-gray-50 active:bg-gray-50 transition text-left">
-          <KeyRound size={18} color="#2B95ED" />
-          <span className="flex-1 text-sm text-gray-800">パスコードを変更</span>
-          <ChevronDown size={14} color="#999" className="-rotate-90" />
-        </button>
-        <button onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-4 py-3.5 active:bg-gray-50 transition text-left">
-          <LogOut size={18} color="#F44E5E" />
-          <span className="flex-1 text-sm text-[#F44E5E]">ログアウト</span>
-        </button>
-      </div>
+        <div className="bg-white rounded-2xl shadow-sm p-4 space-y-3">
+          <input type="password" placeholder="現在のパスコード" value={currentPw}
+            onChange={e => setCurrentPw(e.target.value)}
+            className="w-full border rounded-lg px-3 py-2 text-sm" />
+          <input type="password" placeholder="新しいパスコード（4桁以上）" value={newPw}
+            onChange={e => setNewPw(e.target.value)}
+            className="w-full border rounded-lg px-3 py-2 text-sm" />
+          <input type="password" placeholder="新しいパスコード（確認）" value={confirmPw}
+            onChange={e => setConfirmPw(e.target.value)}
+            className="w-full border rounded-lg px-3 py-2 text-sm" />
+          {pwError && <p className="text-red-500 text-xs">{pwError}</p>}
+          {pwMsg && <p className="text-green-600 text-xs">{pwMsg}</p>}
+          <button onClick={handleChangePw}
+            className="w-full py-2 rounded-lg bg-blue-500 text-white text-sm font-medium">変更する</button>
+        </div>
+      </section>
 
-      <div className="h-8" />
+      {/* ===== ログアウト ===== */}
+      <button onClick={logout}
+        className="w-full py-3 rounded-xl bg-red-50 text-red-500 font-medium text-sm flex items-center justify-center gap-2">
+        <LogOut size={16} /> ログアウト
+      </button>
 
-      {/* カテゴリ追加モーダル */}
+      {/* ===== カテゴリ追加モーダル ===== */}
       {showAdd && (
-        <div className="fixed inset-0 z-50 flex items-end" onClick={() => setShowAdd(false)}>
-          <div className="absolute inset-0 bg-black/30" />
-          <div className="relative w-full max-w-lg mx-auto bg-white rounded-t-2xl p-5 pb-8 animate-slide-up" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-bold">カテゴリを追加</h3>
-              <button onClick={() => setShowAdd(false)}><X size={20} color="#999" /></button>
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-end justify-center"
+          onClick={() => setShowAdd(false)}>
+          <div className="bg-white w-full max-w-lg rounded-t-2xl p-5 animate-slideUp"
+            onClick={e => e.stopPropagation()}>
+            <h3 className="font-bold text-gray-800 mb-4">カテゴリ追加</h3>
+            <input placeholder="カテゴリ名" value={newName}
+              onChange={e => setNewName(e.target.value)}
+              className="w-full border rounded-lg px-3 py-2 text-sm mb-3" />
+
+            <p className="text-xs text-gray-500 mb-2">アイコン</p>
+            <div className="grid grid-cols-8 gap-2 mb-3">
+              {ICONS.map(ic => {
+                const Ic = getIcon(ic);
+                return (
+                  <button key={ic} onClick={() => setNewIcon(ic)}
+                    className={`w-9 h-9 rounded-lg flex items-center justify-center ${
+                      newIcon === ic ? "ring-2 ring-blue-500 bg-blue-50" : "bg-gray-100"
+                    }`}><Ic size={16} /></button>
+                );
+              })}
             </div>
-            <div className="mb-4">
-              <label className="text-xs text-gray-500 font-bold mb-1 block">カテゴリ名</label>
-              <input type="text" value={newName} onChange={e => setNewName(e.target.value)} placeholder="例: 通信費"
-                className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#2B95ED]/30" autoFocus />
+
+            <p className="text-xs text-gray-500 mb-2">カラー</p>
+            <div className="flex flex-wrap gap-2 mb-4">
+              {CATEGORY_COLORS.map(cl => (
+                <button key={cl} onClick={() => setNewColor(cl)}
+                  className={`w-7 h-7 rounded-full ${newColor === cl ? "ring-2 ring-offset-2 ring-blue-500" : ""}`}
+                  style={{ backgroundColor: cl }} />
+              ))}
             </div>
-            <div className="mb-5">
-              <label className="text-xs text-gray-500 font-bold mb-2 block">アイコン</label>
-              <div className="grid grid-cols-8 gap-2">
-                {ICON_OPTIONS.map(name => {
-                  const I = getIcon(name)
-                  return (
-                    <button key={name} onClick={() => setNewIcon(name)}
-                      className={`w-9 h-9 rounded-lg flex items-center justify-center transition ${newIcon === name ? 'bg-[#2B95ED] ring-2 ring-[#2B95ED]/30' : 'bg-gray-100'}`}>
-                      <I size={16} color={newIcon === name ? 'white' : '#666'} />
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-            <button onClick={handleAdd} disabled={!newName.trim()}
-              className="w-full py-3.5 rounded-xl bg-[#2B95ED] text-white font-bold text-base active:scale-[0.98] transition disabled:opacity-40">
-              追加する
-            </button>
-          </div>
-        </div>
-      )}
 
-      {/* パスコード変更モーダル */}
-      {showPassChange && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" onClick={() => setShowPassChange(false)}>
-          <div className="absolute inset-0 bg-black/40" />
-          <div className="relative w-full max-w-sm bg-white rounded-2xl shadow-xl p-5 animate-fade-in" onClick={e => e.stopPropagation()}>
-            {passSuccess ? (
-              <div className="flex flex-col items-center py-6">
-                <Check size={48} color="#4CAF50" />
-                <p className="mt-3 text-base font-bold text-gray-800">変更しました</p>
-              </div>
-            ) : (
-              <>
-                <div className="flex items-center justify-between mb-5">
-                  <h3 className="text-base font-bold text-gray-800">パスコード変更</h3>
-                  <button onClick={() => setShowPassChange(false)}><X size={18} color="#999" /></button>
-                </div>
-
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-xs text-gray-500 font-bold mb-1 block">現在のパスコード</label>
-                    <input type="password" value={currentPass} onChange={e => setCurrentPass(e.target.value)}
-                      placeholder="現在のパスコード" inputMode="numeric"
-                      className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#2B95ED]/30 text-center tracking-[0.5em]" />
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-500 font-bold mb-1 block">新しいパスコード</label>
-                    <input type="password" value={newPass} onChange={e => setNewPass(e.target.value)}
-                      placeholder="新しいパスコード" inputMode="numeric"
-                      className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#2B95ED]/30 text-center tracking-[0.5em]" />
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-500 font-bold mb-1 block">新しいパスコード（確認）</label>
-                    <input type="password" value={confirmPass} onChange={e => setConfirmPass(e.target.value)}
-                      placeholder="もう一度入力" inputMode="numeric"
-                      className="w-full px-4 py-3 bg-gray-50 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#2B95ED]/30 text-center tracking-[0.5em]" />
-                  </div>
-                </div>
-
-                {passError && (
-                  <p className="text-xs text-[#F44E5E] mt-3 text-center animate-fade-in">{passError}</p>
-                )}
-
-                <button onClick={handlePasswordChange}
-                  className="w-full mt-5 py-3.5 rounded-xl bg-[#2B95ED] text-white font-bold text-base active:scale-[0.98] transition">
-                  変更する
-                </button>
-              </>
-            )}
+            <button onClick={handleAdd}
+              className="w-full py-3 rounded-xl bg-blue-500 text-white font-medium">追加する</button>
           </div>
         </div>
       )}
     </div>
-  )
+  );
 }
